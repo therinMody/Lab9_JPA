@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityTransaction;
 import models.Role;
 import models.User;
 import servlets.UserServlet;
@@ -19,204 +21,112 @@ import servlets.UserServlet;
  */
 public class UserDB {
 
-    private ArrayList<Role> roleList;
-    private ArrayList<User> userList;
+    private List<Role> roleList;
+    private List<User> userList;
 
-    public static User get() {
 
-        return null;
-    }
-
-    public ArrayList<User> getAll() throws SQLException {
-
-        ConnectionPool pool = ConnectionPool.getInstance();
-        Connection connection = pool.getConnection();
-        PreparedStatement ps;
-
-        String users = "Select * From user;";
-
-        RoleDB roleDB = new RoleDB();
-        roleList = roleDB.getAll();
-        userList = new ArrayList<>();
-
+    public List<User> getAll() throws SQLException {
+        
+        EntityManager em = DBUtil.getEmFactory().createEntityManager();
+        
         try {
-
-            //for users
-            ps = connection.prepareStatement(users);
-            ResultSet user = ps.executeQuery();
-
-            while (user.next()) {
-                String email = user.getString(1);
-                boolean active = user.getBoolean(2);
-                String first_name = user.getString(3);
-                String last_name = user.getString(4);
-                String password = user.getString(5);
-                int userRole = user.getInt(6);
-
-                Role newRole = roleList.get(userRole - 1);
-
-                User addUser = new User(email, active, first_name, last_name, password, newRole.getRoleName());
-                userList.add(addUser);
-            }
-            DBUtil.closePreparedStatement(ps);
-            pool.freeConnection(connection);
-            user.close();
-
-        } catch (SQLException ex) {
-
-            Logger.getLogger(UserServlet.class.getName()).log(Level.SEVERE, null, ex);
+            userList = em.createNamedQuery("User.findAll", User.class).getResultList();
+        } finally {
+            em.close();
         }
 
+        
         return userList;
+    }
+    
+    public User get(String email){
+        
+        EntityManager em = DBUtil.getEmFactory().createEntityManager();
+        User user = null;
+        try {
+            user = em.find(User.class, email);
+        } finally {
+            em.close();
+        }
+    
+        return user;
     }
 
     public void insert(User user) throws SQLException {
-
-        //connect
-        ConnectionPool cp = ConnectionPool.getInstance();
-        Connection con = cp.getConnection();
-        PreparedStatement ps = null;
-
-        //get correct role id, hack way
-        int role = 99;
-
-        switch (user.role) {
-            case "system admin":
-                role = 1;
-                break;
-            case "regular user":
-                role = 2;
-                break;
-            case "company admin":
-                role = 3;
-                break;
-        }
-
-        //prepare insertion
-        String sql = "INSERT INTO user "
-                + "values('" + user.email
-                + "', " + user.active
-                + ", '" + user.firstname
-                + "', '" + user.lastname
-                + "', '" + user.password
-                + "', " + role + ");";
-
+        
+        EntityManager em = DBUtil.getEmFactory().createEntityManager();
+        EntityTransaction trans = em.getTransaction();
+        
         try {
-            ps = con.prepareStatement(sql);
-            ps.executeUpdate();
-
+            //Role role = user.getRole();
+            trans.begin();
+            em.persist(user);
+            //em.merge(role);
+            trans.commit();
+        } catch (Exception ex){
+            trans.rollback();
         } finally {
-            DBUtil.closePreparedStatement(ps);
-            cp.freeConnection(con);
+            em.close();
         }
+       
     }
 
     public void delete(String email) throws SQLException {
 
-        //connect
-        ConnectionPool cp = ConnectionPool.getInstance();
-        Connection con = cp.getConnection();
-        PreparedStatement ps = null;
-
-        //prepare deletion
-        String sql = "DELETE FROM user WHERE email = '"
-                + email + "';";
-
-        //execute and close
+        EntityManager em = DBUtil.getEmFactory().createEntityManager();
+        EntityTransaction trans = em.getTransaction();
+        
         try {
-            ps = con.prepareStatement(sql);
-            ps.executeUpdate();
-
+            trans.begin();
+            em.remove(em.find(User.class, email));
+            trans.commit();
+        } catch (Exception ex){
+            trans.rollback();
         } finally {
-            DBUtil.closePreparedStatement(ps);
-            cp.freeConnection(con);
+            em.close();
         }
 
     }
 
-    public void update(String email, String firstname, String lastname, String role) throws SQLException{
+    public void update(String email, String newFirst, String newLast, String newRole){
         
-        //connect
-        ConnectionPool cp = ConnectionPool.getInstance();
-        Connection con = cp.getConnection();
-        PreparedStatement ps = null;
+        EntityManager em = DBUtil.getEmFactory().createEntityManager();
+        EntityTransaction trans = em.getTransaction();
         
-        //get correct role id, hack way
-        int roleInt = 99;
-
-        switch (role) {
+        //access the user DB
+        UserDB userDB = new UserDB();
+        User user = userDB.get(email);
+        user.setFirstName(newFirst);
+        user.setLastName(newLast);
+        
+        
+        int checkRole = 0;
+        switch (newRole) {
             case "system admin":
-                roleInt = 1;
+                checkRole = 1;
                 break;
             case "regular user":
-                roleInt = 2;
+                checkRole = 2;
                 break;
             case "company admin":
-                roleInt = 3;
+                checkRole = 3;
                 break;
         }
         
-        //prepare update statement
-        String sql = "UPDATE user SET first_name = '"
-                + firstname + "', last_name = '"
-                + lastname + "', role = "
-                + roleInt + " WHERE email = '"
-                + email + "';";
-        
-        //execute and close
-        try {
-            ps = con.prepareStatement(sql);
-            ps.executeUpdate();
+        user.setRole(new Role(checkRole));
 
+        
+        try {
+            trans.begin();
+            em.merge(user);
+            trans.commit();
+        } catch (Exception ex){
+            trans.rollback();
         } finally {
-            DBUtil.closePreparedStatement(ps);
-            cp.freeConnection(con);
+            em.close();
         }
 
     }
 
-    public User getUser(String email) throws SQLException {
-
-        //connect
-        ConnectionPool cp = ConnectionPool.getInstance();
-        Connection con = cp.getConnection();
-        PreparedStatement ps = null;
-
-        //get specific user
-        String sql = "SELECT * FROM user WHERE email = '"
-                + email + "';";
-        
-        
-        //Result 
-        ResultSet user = null;
-        User addUser = null;
-        //execute and close
-        try {
-            ps = con.prepareStatement(sql);
-            user = ps.executeQuery();
-
-            RoleDB roleDB = new RoleDB();
-            roleList = roleDB.getAll();
-            
-            while (user.next()) {
-                email = user.getString(1);
-                boolean active = user.getBoolean(2);
-                String first_name = user.getString(3);
-                String last_name = user.getString(4);
-                String password = user.getString(5);
-                int userRole = user.getInt(6);
-
-                Role newRole = roleList.get(userRole - 1);
-
-                addUser = new User(email, active, first_name, last_name, password, newRole.getRoleName());
-            }
-
-        } finally {
-            DBUtil.closePreparedStatement(ps);
-            cp.freeConnection(con);
-        }
-
-        return addUser;
-    }
 
 }

@@ -49,8 +49,8 @@
 
                         <tr>
                             <td>${user.email}</td>
-                            <td>${user.firstname}</td>
-                            <td>${user.lastname}</td>
+                            <td>${user.firstName}</td>
+                            <td>${user.lastName}</td>
                             <td>${user.role}</td>
                             <td>
                                 <button type="submit" value="${user.email}" name="user">Edit</button>

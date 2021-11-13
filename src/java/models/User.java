@@ -1,37 +1,96 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
 package models;
+
+import java.io.Serializable;
+import javax.persistence.Basic;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
+import javax.persistence.Table;
+import javax.xml.bind.annotation.XmlRootElement;
+
 /**
  *
- * @author mujta
- * @author Therin
+ * @author 821320
  */
-public class User {
+@Entity
+@Table(name = "user")
+@XmlRootElement
+@NamedQueries({
+    @NamedQuery(name = "User.findAll", query = "SELECT u FROM User u")
+    , @NamedQuery(name = "User.findByEmail", query = "SELECT u FROM User u WHERE u.email = :email")
+    , @NamedQuery(name = "User.findByActive", query = "SELECT u FROM User u WHERE u.active = :active")
+    , @NamedQuery(name = "User.findByFirstName", query = "SELECT u FROM User u WHERE u.firstName = :firstName")
+    , @NamedQuery(name = "User.findByLastName", query = "SELECT u FROM User u WHERE u.lastName = :lastName")
+    , @NamedQuery(name = "User.findByPassword", query = "SELECT u FROM User u WHERE u.password = :password")})
+public class User implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+    @Id
+    @Basic(optional = false)
+    @Column(name = "email")
     public String email;
+    @Basic(optional = false)
+    @Column(name = "active")
     public boolean active;
-    public String firstname;
-    public String lastname;
+    @Basic(optional = false)
+    @Column(name = "first_name")
+    public String firstName;
+    @Basic(optional = false)
+    @Column(name = "last_name")
+    public String lastName;
+    @Basic(optional = false)
+    @Column(name = "password")
     public String password;
-    public String role;
-
-    public User(String email, boolean active, String firstname, String lastname, String password, String role) {
-        this.email = email;
-        this.active = active;
-        this.firstname = firstname;
-        this.lastname = lastname;
-        this.password = password;
-        this.role = role;
-    }
-
-    public User(String email, String firstname, String lastname) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    public User(String email, boolean active, String firstname, String lastname, String role) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
+    @JoinColumn(name = "role", referencedColumnName = "role_id")
+    @ManyToOne(optional = false, fetch = FetchType.EAGER)
+    public Role role;
 
     public User() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    public User(String email) {
+        this.email = email;
+    }
+
+    public User(String email, boolean active, String firstName, String lastName, String password) {
+        this.email = email;
+        this.active = active;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.password = password;
+    }
+    
+    public User(String email, boolean active, String firstName, String lastName, String password, String role) {
+        this.email = email;
+        this.active = active;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.password = password;
+        
+        int checkRole = 0;
+        switch (role) {
+            case "system admin":
+                checkRole = 1;
+                break;
+            case "regular user":
+                checkRole = 2;
+                break;
+            case "company admin":
+                checkRole = 3;
+                break;
+        }
+        
+        this.role = new Role(checkRole);
     }
 
     public String getEmail() {
@@ -42,7 +101,7 @@ public class User {
         this.email = email;
     }
 
-    public boolean isActive() {
+    public boolean getActive() {
         return active;
     }
 
@@ -50,24 +109,20 @@ public class User {
         this.active = active;
     }
 
-    public boolean getActive() {
-        return active;
+    public String getFirstName() {
+        return firstName;
     }
 
-    public String getFirstname() {
-        return firstname;
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
     }
 
-    public void setFirstname(String firstname) {
-        this.firstname = firstname;
+    public String getLastName() {
+        return lastName;
     }
 
-    public String getLastname() {
-        return lastname;
-    }
-
-    public void setLastname(String lastname) {
-        this.lastname = lastname;
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public String getPassword() {
@@ -78,20 +133,37 @@ public class User {
         this.password = password;
     }
 
-    public String getRole() {
+    public Role getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(Role role) {
         this.role = role;
     }
 
-    public void setUserId(String email, boolean active, String firstname, String lastname, String password, String role) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    @Override
+    public int hashCode() {
+        int hash = 0;
+        hash += (email != null ? email.hashCode() : 0);
+        return hash;
     }
 
-    public void add(User user) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    @Override
+    public boolean equals(Object object) {
+        // TODO: Warning - this method won't work in the case the id fields are not set
+        if (!(object instanceof User)) {
+            return false;
+        }
+        User other = (User) object;
+        if ((this.email == null && other.email != null) || (this.email != null && !this.email.equals(other.email))) {
+            return false;
+        }
+        return true;
     }
 
+    @Override
+    public String toString() {
+        return "models.User[ email=" + email + " ]";
+    }
+    
 }

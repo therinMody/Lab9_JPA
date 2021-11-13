@@ -10,6 +10,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletException;
@@ -37,8 +38,8 @@ public class UserServlet extends HttpServlet {
 
         try {
 
-            ArrayList<User> userList = userDB.getAll();
-            ArrayList<Role> roleList = roleDB.getAll();
+            List<User> userList = userDB.getAll();
+            List<Role> roleList = roleDB.getAll();
 
             session.setAttribute("users", userList);
             session.setAttribute("roles", roleList);
@@ -102,16 +103,13 @@ public class UserServlet extends HttpServlet {
                 email = request.getParameter("user");
                 
                 User user = null;
-                try {
-                    user = userDB.getUser(email);
-                    
-                } catch (SQLException s) {
-                    System.out.println("Failed to retrieve user information from the database");
-                }
+
+                user = userDB.get(email);
+
                 
                 session.setAttribute("newemail", user.getEmail());
-                session.setAttribute("newfirstname", user.getFirstname());
-                session.setAttribute("newlastname", user.getLastname());
+                session.setAttribute("newfirstname", user.getFirstName());
+                session.setAttribute("newlastname", user.getLastName());
                 session.setAttribute("newrole", user.getRole());
 
                 

@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.persistence.EntityManager;
 import models.Role;
 import models.User;
 import servlets.UserServlet;
@@ -18,41 +19,23 @@ import servlets.UserServlet;
  * @author Therin
  */
 public class RoleDB {
-    private ArrayList<Role> roleList;
+    private List<Role> roleList;
     
     public RoleDB() {
         roleList = null;
     }
 
-    public ArrayList<Role> getAll() {
+    public List<Role> getAll() {
         
-        ConnectionPool pool = ConnectionPool.getInstance();
-        Connection connection = pool.getConnection();
-        PreparedStatement ps;
-        
-        String role = "Select * From Role;";
-        
-        roleList = new ArrayList<>();
+        EntityManager em = DBUtil.getEmFactory().createEntityManager();
         
         try {
-            //for role
-            ps = connection.prepareStatement(role);
-            ResultSet roles = ps.executeQuery();
-            
-            
-            while (roles.next()) {
-                int roleID = roles.getInt(1);
-                String roleName = roles.getString(2);
-                Role r = new Role(roleID, roleName);
-                roleList.add(r);
-            }
-            
-            pool.freeConnection(connection);
-                   
-        } catch (SQLException ex) {
-            
-            Logger.getLogger(UserServlet.class.getName()).log(Level.SEVERE, null, ex);
+            roleList = em.createNamedQuery("Role.findAll", Role.class).getResultList();
+        } finally {
+            em.close();
         }
+
+        
         
         return roleList;
     }
